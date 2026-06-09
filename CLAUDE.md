@@ -4,76 +4,68 @@ Guidance for Claude Code when working in this repo.
 
 ## What this is
 
-`luxa` — a [Typer](https://typer.tiangolo.com/) CLI **and** webhook server that
-controls a **Luxafor Flag** (USB HID `04d8:f372`): flash, blink, colors, off,
-plus a FastAPI server mapping YAML-configured webhooks to behaviors.
-Tooling is managed with **mise** (Python 3.12 + uv) and **uv** for deps.
+`luxa` — a Rust CLI **and** webhook server that controls a **Luxafor Flag**
+(USB HID `04d8:f372`): flash, blink, colors, off, plus an axum server mapping
+YAML-configured webhooks to behaviors. The device is driven directly over USB
+with the pure-Rust `nusb` crate (no libusb/hidapi). Toolchain via **mise**
+(Rust 1.96) + **Cargo**.
 
 ## Layout
 
-| Path                    | Purpose                                              |
-|-------------------------|------------------------------------------------------|
-| `src/luxa/device.py`    | Low-level HID driver (`Luxafor` class), wire bytes   |
-| `src/luxa/behaviors.py` | Named behaviors registry (solid/blink/flash/…)       |
-| `src/luxa/config.py`    | YAML config load + pydantic validation               |
-| `src/luxa/controller.py`| Thread-safe, locked shared device for the server     |
-| `src/luxa/server.py`    | FastAPI app — builds `/webhook/<name>` routes        |
-| `src/luxa/cli.py`       | Typer app — one function per command                 |
-| `luxa.example.yaml`     | Sample webhook config                                |
-| `mise.toml`             | Toolchain pin + `flash`/`blink`/`off`/`serve` tasks  |
-| `pyproject.toml`        | Deps + `luxa` console script                         |
-| `docs/`                 | `getting-started`, `webhooks`, `debugging`, `adr/`   |
-| `99-luxafor.rules`      | udev rule granting device access on Linux            |
+| Path                  | Purpose                                              |
+|-----------------------|------------------------------------------------------|
+| `src/device.rs`       | Low-level USB driver (`Luxafor`), 8-byte HID packets |
+| `src/color.rs`        | Named colours + `parse_color` (name or hex)          |
+| `src/behaviors.rs`    | Behavior registry (solid/blink/flash/…)              |
+| `src/config.rs`       | YAML config (serde) + validation                     |
+| `src/controller.rs`   | Shared device guarded by a mutex, reconnect-once      |
+| `src/server.rs`       | axum app — `/webhook/<name>` routes                  |
+| `src/main.rs`         | clap CLI — one subcommand per command                |
+| `luxa.example.yaml`   | Sample webhook config                                |
+| `mise.toml`           | Toolchain + cargo tasks (serve/tunnel/lint/fmt/…)    |
+| `docs/`               | `getting-started`, `webhooks`, `debugging`, `adr/`   |
+| `99-luxafor.rules`    | udev rule granting device access on Linux            |
 
 ## Commands
 
 ```bash
-mise install && mise run install     # toolchain + deps (uv sync)
-uv run luxa --help                   # all commands
-uv run luxa flash blue --repeat 5    # hardware strobe
-uv run luxa blink green --times 8    # software on/off loop
-uv run luxa behaviors                # list webhook behaviors
-uv run luxa serve -c luxa.yaml       # run the webhook server
-mise run flash | blink | off | serve # task shortcuts
+mise install                         # rust toolchain + cargo build
+cargo run -- --help                  # all commands
+cargo run -- flash blue --repeat 5   # hardware strobe
+cargo run -- serve -c luxa.yaml      # webhook server
+mise run lint | fmt | test           # clippy / rustfmt / cargo test
+mise run flash | blink | off | serve | tunnel
 ```
-
-Run CLI through mise/uv so the pinned interpreter and `.venv` are used:
-`mise exec -- uv run luxa <cmd>`.
 
 ## Conventions
 
-- **New effects:** add the wire-level method to `device.py` first (build the byte
-  report, pad to report-id + 8 bytes), then a thin Typer command in `cli.py`
-  following the existing pattern: color via `parse_color` (name or hex),
-  wrap in `try/except LuxaforError`, report success with `typer.secho`.
-- **New webhook behavior:** add an entry to `BEHAVIORS` in `behaviors.py` (it's
-  the single source of truth — `config.py` validates against it and `luxa
-  behaviors` lists it). Behaviors take `(dev, rgb, params)` and read optional
-  tuning via `_opt(params.<field>, default)`.
-- Colors are names (`red`, `green`, …) or hex (`#ff8800`); extend `COLORS` rather
-  than hardcoding RGB tuples.
-- **YAML gotcha:** bare `off`/`on` parse as booleans — `config.py` coerces them,
-  but quote `"off"` in examples.
-- Keep edits minimal and match surrounding style. Update `docs/` when setup or
-  behavior changes.
+- **New effects:** add the 8-byte command method to `device.rs` first
+  (`self.write([mode, ...])`), then expose it as a clap subcommand in `main.rs`.
+- **New webhook behavior:** add an arm to `behaviors::run` and an entry to
+  `behaviors::BEHAVIORS` (single source of truth — `config.rs` validates against
+  it and the CLI lists it).
+- Colours are names (`red`, …) or hex (`#ff8800`); extend `color::COLORS`.
+- Device work is blocking; in the server it runs on `spawn_blocking` behind the
+  controller mutex.
+- Keep `cargo clippy -- -D warnings` and `cargo fmt` clean. Update `docs/` when
+  behavior or setup changes.
 
 ## Hardware gotchas (see `docs/debugging.md`)
 
-- The `hidapi` wheel uses the **libusb** backend → permissions live on the USB
-  node `/dev/bus/usb/<bus>/<dev>`, **not** `/dev/hidraw*`.
+- `nusb` opens the USB node `/dev/bus/usb/<bus>/<dev>` via usbfs; it detaches the
+  kernel HID driver and claims interface 0. Permissions live on that node.
 - A udev rule needs a **replug** (or `udevadm trigger --action=add`) to apply to
   an already-connected device.
-- `enumerate()` works but `open()` fails ⇒ write-permission issue on the USB node.
+- Enumeration works but `open()`/claim fails ⇒ write-permission issue on the USB node.
+- The Flag has one 8-byte interrupt OUT endpoint (`0x01`); commands are 8 bytes.
 
 ## Specialist agents
 
 - **luxafor-expert** (`.claude/agents/luxafor-expert.md`) — device-protocol,
   new-command, or "device won't respond" tasks.
-- **adr-writer** (`.claude/agents/adr-writer.md`) — author ADRs in `docs/adr/`
-  for any non-trivial design decision (mermaid diagrams, MADR template).
+- **adr-writer** (`.claude/agents/adr-writer.md`) — author ADRs in `docs/adr/`.
 
 ## Verifying
 
 When hardware is connected, verify changes against the real device
-(`uv run luxa flash`, etc.) and report exactly what it did — not just that tests
-pass.
+(`cargo run -- flash`, etc.) and report exactly what it did — not just that it builds.

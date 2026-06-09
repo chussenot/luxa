@@ -26,7 +26,7 @@ flowchart LR
 - The server running locally:
 
   ```bash
-  uv run luxa serve        # serving on http://127.0.0.1:8765
+  cargo run -- serve        # serving on http://127.0.0.1:8765
   ```
 
 ## Option A — Quick tunnel (instant, throwaway)

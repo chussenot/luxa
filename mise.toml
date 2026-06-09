@@ -1,23 +1,22 @@
 [tools]
 cloudflared = "latest"
-python = "3.12"
-uv = "latest"
-
-[env]
-# Keep the virtualenv inside the project directory
-UV_PROJECT_ENVIRONMENT = ".venv"
+rust = "1.96"
 
 # --- setup -------------------------------------------------------------------
 
 [tasks.install]
-description = "Install dependencies with uv"
-run = "uv sync"
+description = "Build the project (compile dependencies)"
+run = "cargo build"
+
+[tasks.build]
+description = "Build an optimized release binary"
+run = "cargo build --release"
 
 # --- webhook server ----------------------------------------------------------
 
 [tasks.serve]
 description = "Run the webhook server (luxa.yaml)"
-run = "uv run luxa serve"
+run = "cargo run -q -- serve"
 
 [tasks.tunnel]
 description = "Expose the webhook port via cloudflared and print the public URL"
@@ -30,7 +29,7 @@ trap 'kill $cf 2>/dev/null' EXIT INT TERM
 echo "starting cloudflared tunnel -> http://127.0.0.1:${port} ..."
 url=""
 for i in $(seq 1 60); do
-  url=$(grep -oE 'https://[a-z0-9-]+\\.trycloudflare\\.com' "$log" | head -1)
+  url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$log" | head -1)
   [ -n "$url" ] && break
   kill -0 $cf 2>/dev/null || break
   sleep 0.5
@@ -60,40 +59,45 @@ run = "curl -fsS -X POST http://127.0.0.1:8765/webhook/incident"
 
 [tasks.flash]
 description = "Flash the Luxafor (red by default)"
-run = "uv run luxa flash"
+run = "cargo run -q -- flash"
 
 [tasks.blink]
 description = "Blink the Luxafor (red by default)"
-run = "uv run luxa blink"
+run = "cargo run -q -- blink"
 
 [tasks.off]
 description = "Turn the Luxafor off"
-run = "uv run luxa off"
+run = "cargo run -q -- off"
 
 [tasks.behaviors]
 description = "List the behaviors available to webhooks"
-run = "uv run luxa behaviors"
+run = "cargo run -q -- behaviors"
 
 [tasks.colors]
 description = "List the built-in colour names"
-run = "uv run luxa colors"
+run = "cargo run -q -- colors"
 
 [tasks.demo]
 description = "Cycle through a few effects on the device"
 run = """
-uv run luxa color red
+cargo build -q
+target/debug/luxa color red
 sleep 1
-uv run luxa flash blue --repeat 5
-uv run luxa blink green --times 3
-uv run luxa off
+target/debug/luxa flash blue --repeat 5
+target/debug/luxa blink green --times 3
+target/debug/luxa off
 """
 
-# --- code quality (ruff via uvx, no project dependency) ----------------------
+# --- code quality ------------------------------------------------------------
 
 [tasks.lint]
-description = "Lint the source with ruff"
-run = "uvx ruff check src"
+description = "Lint with clippy (warnings as errors)"
+run = "cargo clippy -- -D warnings"
 
 [tasks.fmt]
-description = "Format the source with ruff"
-run = "uvx ruff format src"
+description = "Format the source with rustfmt"
+run = "cargo fmt"
+
+[tasks.test]
+description = "Run the test suite"
+run = "cargo test"

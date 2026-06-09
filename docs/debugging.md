@@ -1,7 +1,6 @@
 # Debugging notes
 
-How we went from "device plugged in" to "device flashing". Useful if a fresh
-machine refuses to talk to the Luxafor.
+How we got the Luxafor talking, and how to triage a machine that won't.
 
 ## 1. Confirm the device is seen
 
@@ -12,60 +11,38 @@ lsusb | grep -i 04d8
 
 If this is empty, it's a cable/port/hardware problem — nothing software can fix.
 
-## 2. First failure: permission denied
+## 2. Permissions live on the USB node
 
-`uv run luxa flash` errored with *"Could not open the Luxafor device"*.
-The HID nodes were all root-only:
-
-```bash
-ls -l /dev/hidraw*        # crw------- root root  → no user access
-```
-
-So we wrote the udev rule (`99-luxafor.rules`) granting `MODE="0666"` to the
-Luxafor's VID/PID and installed it. It still failed.
-
-## 3. Finding the real node: libusb vs hidraw
-
-Enumeration worked but `open()` did not — a clue that **reading** was allowed
-but **writing** was not:
-
-```bash
-uv run python -c "import hid; print([d['path'] for d in hid.enumerate() if d['vendor_id']==0x04d8])"
-# [b'7-1.3.2:1.0']   ← a libusb-style path, not /dev/hidrawN
-```
-
-That `bus-port:config.interface` path means the pip `hidapi` wheel is built
-against the **libusb** backend. So it opens the USB device node, and *that's*
-the node whose permissions matter:
+`luxa` uses the pure-Rust `nusb` crate, which talks to the kernel via **usbfs**
+(`/dev/bus/usb/<bus>/<dev>`). It detaches the kernel HID driver and claims
+interface 0, then writes to the interrupt OUT endpoint. So the node whose
+permissions matter is the USB device node, not `/dev/hidraw*`:
 
 ```bash
 ls -l /dev/bus/usb/007/014
-# crw-rw-r-- root root   → group/other can read, only root can write
+# crw-rw-r-- root root   -> only root can write  (before the udev rule)
+# crw-rw-rw- root root   -> writable by everyone (after the rule + replug)
 ```
 
-The `KERNEL=="hidraw*"` half of our rule was irrelevant here; the
-`SUBSYSTEM=="usb"` half is what counts.
+By default it's `0664` (root-only write). The udev rule (`99-luxafor.rules`)
+grants `0666` for the Flag's VID/PID.
 
-## 4. Making the rule actually apply
+## 3. Making the rule apply
 
-`udevadm trigger` (default `change` action) did not flip the mode on the
+`udevadm trigger` (default `change` action) does not always flip the mode on an
 already-connected device. A **replug** fires an `add` event, which re-evaluates
-the rule and sets the node to `0666`:
+the rule and sets the node to `0666`. Equivalent without replugging:
 
 ```bash
-ls -l /dev/bus/usb/001/004
-# crw-rw-rw- root root   ✓
+sudo udevadm trigger --action=add --attr-match=idVendor=04d8
 ```
 
-(Equivalent without replugging: `sudo udevadm trigger --action=add --attr-match=idVendor=04d8`.)
-
-## 5. Success
+## 4. Success
 
 ```bash
-uv run luxa flash blue --repeat 5   # ⚡ flashing blue (x5)
-uv run luxa blink green --times 3   # 💡 blinked green (x3)
-uv run luxa color "#ff8800"         # 🎨 solid
-uv run luxa off                     # ⏻ off
+cargo run -- flash blue --repeat 5   # ⚡ flashing blue (x5)
+cargo run -- blink green --times 3   # 💡 blinked green (x3)
+cargo run -- off                     # ⏻ off
 ```
 
 ## Quick triage checklist
@@ -73,6 +50,10 @@ uv run luxa off                     # ⏻ off
 | Symptom                                  | Likely cause / fix                                   |
 |------------------------------------------|------------------------------------------------------|
 | `lsusb` shows nothing                    | Cable/port/hardware                                  |
-| Enumerate works, `open()` fails          | Write permission on the USB node → udev rule         |
+| "could not claim interface" / open fails | Write permission on the USB node → udev rule         |
 | Rule installed but still denied          | Replug the device (re-fires the `add` event)         |
 | Don't want to touch udev                 | Run the command with `sudo`                          |
+
+> Historical note: the original Python implementation used `hidapi` (libusb
+> backend), which also opened the USB node — so the permission story is the same.
+> The Rust rewrite drops that C dependency and uses `nusb` directly.

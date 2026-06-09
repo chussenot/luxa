@@ -31,7 +31,7 @@ webhooks:
     behavior: "off"      # quote it — bare `off` is a YAML boolean
 ```
 
-- **behavior** — one of the names from `luxa behaviors`.
+- **behavior** — one of the names from `cargo run -- behaviors`.
 - **color** — a name (`red`, `green`, …) or hex (`#ff8800`).
 - **tuning** (optional, per behavior) — `times`, `on`, `off`, `speed`,
   `repeat`, `duration`, `wave_type`. Omit to use the behavior's defaults.
@@ -52,14 +52,14 @@ fails immediately with a clear message.
 | `fade`       | Fade to colour                      | `duration`            |
 | `pulse`      | Hardware wave                       | `wave_type`, `repeat`, `speed` |
 
-Run `luxa behaviors` to list them at any time.
+Run `cargo run -- behaviors` to list them at any time.
 
 ## Run
 
 ```bash
-uv run luxa serve                      # uses ./luxa.yaml
-uv run luxa serve -c other.yaml        # custom config
-uv run luxa serve --host 0.0.0.0 --port 9000   # override host/port
+cargo run -- serve                      # uses ./luxa.yaml
+cargo run -- serve -c other.yaml        # custom config
+cargo run -- serve --host 0.0.0.0 --port 9000   # override host/port
 # or: mise run serve
 ```
 
@@ -76,7 +76,7 @@ curl http://127.0.0.1:8765/health
 ```
 
 Responses: `200` on success, `404` for an unknown webhook name, `503` if the
-device can't be reached. Interactive API docs are at `/docs` (FastAPI).
+device can't be reached.
 
 ## Notes
 

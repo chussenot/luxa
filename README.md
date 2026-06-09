@@ -1,13 +1,15 @@
 # luxa
 
-A tiny [Typer](https://typer.tiangolo.com/) CLI to flash/blink a **Luxafor Flag**
-(USB `04d8:f372`). Managed with [mise](https://mise.jdx.dev/) + [uv](https://docs.astral.sh/uv/).
+A small Rust CLI and webhook server to flash/blink a **Luxafor Flag**
+(USB `04d8:f372`). Talks to the device directly over USB with the pure-Rust
+[`nusb`](https://docs.rs/nusb) crate — no libusb/hidapi system libraries.
+Tooling via [mise](https://mise.jdx.dev/) (Rust toolchain) + Cargo.
 
 ```bash
-mise install && mise run install   # python + uv + deps
-uv run luxa flash blue             # ⚡ strobe
-uv run luxa blink green --times 8  # 💡 on/off loop
-uv run luxa off
+mise install                       # rust toolchain + build
+cargo run -- flash blue            # ⚡ strobe
+cargo run -- blink green --times 8 # 💡 on/off loop
+cargo run -- off
 ```
 
 Linux needs a one-time udev rule for device access — see [docs/getting-started.md](docs/getting-started.md).
@@ -17,8 +19,8 @@ Linux needs a one-time udev rule for device access — see [docs/getting-started
 Map HTTP webhooks to device behaviors via YAML, then run a server:
 
 ```bash
-cp luxa.example.yaml luxa.yaml   # edit to taste
-uv run luxa serve                # POST /webhook/<name>
+cp luxa.example.yaml luxa.yaml     # edit to taste
+cargo run -- serve                 # POST /webhook/<name>
 curl -X POST localhost:8765/webhook/deploy-success
 ```
 
