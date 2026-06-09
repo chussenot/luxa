@@ -4,3 +4,6 @@ __pycache__/
 .python-version
 dist/
 *.egg-info/
+
+# local webhook config (commit luxa.example.yaml instead)
+luxa.yaml

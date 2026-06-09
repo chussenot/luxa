@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from .behaviors import BEHAVIORS
 from .device import COLORS, Luxafor, LuxaforError, parse_color
 
 app = typer.Typer(
-    help="Control a Luxafor Flag: flash, blink, set colours, turn off.",
+    help="Control a Luxafor Flag: flash, blink, set colours, run a webhook server.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -88,6 +90,57 @@ def colors() -> None:
     """List the built-in colour names."""
     for name in COLORS:
         typer.echo(name)
+
+
+@app.command()
+def behaviors() -> None:
+    """List the behaviors available to webhooks."""
+    for name, b in BEHAVIORS.items():
+        typer.echo(f"{name:<12} {b.description}")
+
+
+@app.command()
+def serve(
+    config: Annotated[
+        Path, typer.Option("--config", "-c", help="Path to the YAML config.")
+    ] = Path("luxa.yaml"),
+    host: Annotated[
+        str | None, typer.Option(help="Override the host from the config.")
+    ] = None,
+    port: Annotated[
+        int | None, typer.Option(help="Override the port from the config.")
+    ] = None,
+) -> None:
+    """Run the webhook server defined by a YAML config."""
+    # Imported lazily so the core CLI works without the server extras installed.
+    import uvicorn
+
+    from .config import ConfigError, load_config
+    from .controller import Controller
+    from .server import create_app
+
+    try:
+        cfg = load_config(config)
+    except ConfigError as exc:
+        _fail(str(exc))
+
+    if host is not None:
+        cfg.host = host
+    if port is not None:
+        cfg.port = port
+
+    controller = Controller()
+    application = create_app(cfg, controller)
+    typer.secho(
+        f"🚦 serving {len(cfg.webhooks)} webhook(s) on http://{cfg.host}:{cfg.port}",
+        fg=typer.colors.GREEN,
+    )
+    for name, spec in cfg.webhooks.items():
+        typer.echo(f"   POST /webhook/{name} → {spec.behavior} {spec.color}")
+    try:
+        uvicorn.run(application, host=cfg.host, port=cfg.port)
+    finally:
+        controller.close()
 
 
 if __name__ == "__main__":

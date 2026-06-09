@@ -21,3 +21,7 @@ run = "uv run luxa blink"
 [tasks.off]
 description = "Turn the Luxafor off"
 run = "uv run luxa off"
+
+[tasks.serve]
+description = "Run the webhook server (luxa.yaml)"
+run = "uv run luxa serve"

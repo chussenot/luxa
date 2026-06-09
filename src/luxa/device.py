@@ -9,6 +9,7 @@ Modes used here:
     1  static colour : [0, 1, led, R, G, B]
     2  fade          : [0, 2, led, R, G, B, duration]
     3  strobe (flash): [0, 3, led, R, G, B, speed, 0, repeat]
+    4  wave          : [0, 4, wave_type, R, G, B, 0, repeat, speed]
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ LED_BACK = 0x42  # front side of the flag
 _MODE_STATIC = 1
 _MODE_FADE = 2
 _MODE_STROBE = 3
+_MODE_WAVE = 4
 
 RGB = tuple[int, int, int]
 
@@ -132,6 +134,13 @@ class Luxafor:
         """Hardware strobe/flash. ``speed`` and ``repeat`` are 0-255."""
         r, g, b = rgb
         self._write([_MODE_STROBE, led, r, g, b, speed, 0, repeat])
+
+    def wave(
+        self, rgb: RGB, wave_type: int = 1, repeat: int = 3, speed: int = 30
+    ) -> None:
+        """Hardware wave effect. ``wave_type`` 1-5, ``repeat``/``speed`` 0-255."""
+        r, g, b = rgb
+        self._write([_MODE_WAVE, wave_type, r, g, b, 0, repeat, speed])
 
     def blink(
         self,

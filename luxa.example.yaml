@@ -1,0 +1,39 @@
+# Example luxa webhook config. Copy to luxa.yaml and edit, then: luxa serve
+#
+# Each entry under `webhooks:` becomes a route:  GET|POST /webhook/<name>
+# Trigger it, e.g.:  curl -X POST http://127.0.0.1:8765/webhook/deploy-success
+#
+# behavior: one of  solid, off, blink, slow_blink, fast_blink, flash, fade, pulse
+#                   (run `luxa behaviors` to list them)
+# color:    a name (red, green, blue, ...) or hex like "#ff8800"
+# Optional tuning (per behavior): times, on, off, speed, repeat, duration, wave_type
+
+host: 127.0.0.1
+port: 8765
+
+webhooks:
+  deploy-success:
+    behavior: blink
+    color: green
+    times: 3
+
+  deploy-failed:
+    behavior: flash
+    color: red
+    repeat: 10
+
+  build-running:
+    behavior: solid
+    color: yellow
+
+  incident:
+    behavior: fast_blink
+    color: "#ff0033"
+
+  meeting:
+    behavior: pulse
+    color: magenta
+
+  idle:
+    # Note: bare `off` is YAML's boolean; quoting is clearest (works either way).
+    behavior: "off"

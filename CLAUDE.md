@@ -4,20 +4,26 @@ Guidance for Claude Code when working in this repo.
 
 ## What this is
 
-`luxa` — a small [Typer](https://typer.tiangolo.com/) CLI that controls a
-**Luxafor Flag** (USB HID `04d8:f372`): flash, blink, set colors, turn off.
+`luxa` — a [Typer](https://typer.tiangolo.com/) CLI **and** webhook server that
+controls a **Luxafor Flag** (USB HID `04d8:f372`): flash, blink, colors, off,
+plus a FastAPI server mapping YAML-configured webhooks to behaviors.
 Tooling is managed with **mise** (Python 3.12 + uv) and **uv** for deps.
 
 ## Layout
 
-| Path                  | Purpose                                            |
-|-----------------------|----------------------------------------------------|
-| `src/luxa/device.py`  | Low-level HID driver (`Luxafor` class), wire bytes |
-| `src/luxa/cli.py`     | Typer app — one function per command               |
-| `mise.toml`           | Toolchain pin + `flash`/`blink`/`off`/`install` tasks |
-| `pyproject.toml`      | Deps + `luxa` console script                       |
-| `docs/`               | Setup (`getting-started.md`) and `debugging.md`    |
-| `99-luxafor.rules`    | udev rule granting device access on Linux          |
+| Path                    | Purpose                                              |
+|-------------------------|------------------------------------------------------|
+| `src/luxa/device.py`    | Low-level HID driver (`Luxafor` class), wire bytes   |
+| `src/luxa/behaviors.py` | Named behaviors registry (solid/blink/flash/…)       |
+| `src/luxa/config.py`    | YAML config load + pydantic validation               |
+| `src/luxa/controller.py`| Thread-safe, locked shared device for the server     |
+| `src/luxa/server.py`    | FastAPI app — builds `/webhook/<name>` routes        |
+| `src/luxa/cli.py`       | Typer app — one function per command                 |
+| `luxa.example.yaml`     | Sample webhook config                                |
+| `mise.toml`             | Toolchain pin + `flash`/`blink`/`off`/`serve` tasks  |
+| `pyproject.toml`        | Deps + `luxa` console script                         |
+| `docs/`                 | `getting-started`, `webhooks`, `debugging`, `adr/`   |
+| `99-luxafor.rules`      | udev rule granting device access on Linux            |
 
 ## Commands
 
@@ -26,7 +32,9 @@ mise install && mise run install     # toolchain + deps (uv sync)
 uv run luxa --help                   # all commands
 uv run luxa flash blue --repeat 5    # hardware strobe
 uv run luxa blink green --times 8    # software on/off loop
-mise run flash | blink | off         # task shortcuts
+uv run luxa behaviors                # list webhook behaviors
+uv run luxa serve -c luxa.yaml       # run the webhook server
+mise run flash | blink | off | serve # task shortcuts
 ```
 
 Run CLI through mise/uv so the pinned interpreter and `.venv` are used:
@@ -38,8 +46,14 @@ Run CLI through mise/uv so the pinned interpreter and `.venv` are used:
   report, pad to report-id + 8 bytes), then a thin Typer command in `cli.py`
   following the existing pattern: color via `parse_color` (name or hex),
   wrap in `try/except LuxaforError`, report success with `typer.secho`.
+- **New webhook behavior:** add an entry to `BEHAVIORS` in `behaviors.py` (it's
+  the single source of truth — `config.py` validates against it and `luxa
+  behaviors` lists it). Behaviors take `(dev, rgb, params)` and read optional
+  tuning via `_opt(params.<field>, default)`.
 - Colors are names (`red`, `green`, …) or hex (`#ff8800`); extend `COLORS` rather
   than hardcoding RGB tuples.
+- **YAML gotcha:** bare `off`/`on` parse as booleans — `config.py` coerces them,
+  but quote `"off"` in examples.
 - Keep edits minimal and match surrounding style. Update `docs/` when setup or
   behavior changes.
 
@@ -51,10 +65,12 @@ Run CLI through mise/uv so the pinned interpreter and `.venv` are used:
   an already-connected device.
 - `enumerate()` works but `open()` fails ⇒ write-permission issue on the USB node.
 
-## Specialist agent
+## Specialist agents
 
-`.claude/agents/luxafor-expert.md` — delegate device-protocol, new-command, or
-"device won't respond" tasks to the **luxafor-expert** subagent.
+- **luxafor-expert** (`.claude/agents/luxafor-expert.md`) — device-protocol,
+  new-command, or "device won't respond" tasks.
+- **adr-writer** (`.claude/agents/adr-writer.md`) — author ADRs in `docs/adr/`
+  for any non-trivial design decision (mermaid diagrams, MADR template).
 
 ## Verifying
 
