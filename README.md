@@ -1,5 +1,7 @@
 # luxa
 
+![](luxafor.jpg)
+
 A small Rust CLI and webhook server to flash/blink a **Luxafor Flag**
 (USB `04d8:f372`). Talks to the device directly over USB with the pure-Rust
 [`nusb`](https://docs.rs/nusb) crate — no libusb/hidapi system libraries.
