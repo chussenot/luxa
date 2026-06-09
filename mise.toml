@@ -7,9 +7,31 @@ uv = "latest"
 # Keep the virtualenv inside the project directory
 UV_PROJECT_ENVIRONMENT = ".venv"
 
+# --- setup -------------------------------------------------------------------
+
 [tasks.install]
 description = "Install dependencies with uv"
 run = "uv sync"
+
+# --- webhook server ----------------------------------------------------------
+
+[tasks.serve]
+description = "Run the webhook server (luxa.yaml)"
+run = "uv run luxa serve"
+
+[tasks.tunnel]
+description = "Expose the webhook port to the web via a cloudflared quick tunnel"
+run = "cloudflared tunnel --url http://127.0.0.1:8765"
+
+[tasks.health]
+description = "Check the running server's health endpoint"
+run = "curl -fsS http://127.0.0.1:8765/health"
+
+[tasks.incident]
+description = "Trigger the 'incident' webhook on the running server"
+run = "curl -fsS -X POST http://127.0.0.1:8765/webhook/incident"
+
+# --- direct device control ---------------------------------------------------
 
 [tasks.flash]
 description = "Flash the Luxafor (red by default)"
@@ -23,6 +45,30 @@ run = "uv run luxa blink"
 description = "Turn the Luxafor off"
 run = "uv run luxa off"
 
-[tasks.serve]
-description = "Run the webhook server (luxa.yaml)"
-run = "uv run luxa serve"
+[tasks.behaviors]
+description = "List the behaviors available to webhooks"
+run = "uv run luxa behaviors"
+
+[tasks.colors]
+description = "List the built-in colour names"
+run = "uv run luxa colors"
+
+[tasks.demo]
+description = "Cycle through a few effects on the device"
+run = """
+uv run luxa color red
+sleep 1
+uv run luxa flash blue --repeat 5
+uv run luxa blink green --times 3
+uv run luxa off
+"""
+
+# --- code quality (ruff via uvx, no project dependency) ----------------------
+
+[tasks.lint]
+description = "Lint the source with ruff"
+run = "uvx ruff check src"
+
+[tasks.fmt]
+description = "Format the source with ruff"
+run = "uvx ruff format src"
