@@ -20,8 +20,33 @@ description = "Run the webhook server (luxa.yaml)"
 run = "uv run luxa serve"
 
 [tasks.tunnel]
-description = "Expose the webhook port to the web via a cloudflared quick tunnel"
-run = "cloudflared tunnel --url http://127.0.0.1:8765"
+description = "Expose the webhook port via cloudflared and print the public URL"
+run = """
+port="${LUXA_PORT:-8765}"
+log="$(mktemp)"
+cloudflared tunnel --url "http://127.0.0.1:${port}" > "$log" 2>&1 &
+cf=$!
+trap 'kill $cf 2>/dev/null' EXIT INT TERM
+echo "starting cloudflared tunnel -> http://127.0.0.1:${port} ..."
+url=""
+for i in $(seq 1 60); do
+  url=$(grep -oE 'https://[a-z0-9-]+\\.trycloudflare\\.com' "$log" | head -1)
+  [ -n "$url" ] && break
+  kill -0 $cf 2>/dev/null || break
+  sleep 0.5
+done
+if [ -n "$url" ]; then
+  echo ""
+  echo "🌐 Public URL: $url"
+  echo "   Trigger:    curl -X POST $url/webhook/incident"
+  echo "   (Ctrl-C to stop the tunnel)"
+  echo ""
+else
+  echo "Could not detect the tunnel URL; cloudflared output:"
+  cat "$log"
+fi
+wait $cf
+"""
 
 [tasks.health]
 description = "Check the running server's health endpoint"
