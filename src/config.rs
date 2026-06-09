@@ -3,13 +3,16 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::behaviors;
 use crate::color;
 
 /// One webhook: which behavior to run, in which colour, with what tuning.
-#[derive(Debug, Clone, Deserialize)]
+///
+/// `Serialize` so the CLI can POST it to a running server's `/run` endpoint;
+/// `Default` so CLI commands can build one with `..Default::default()`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WebhookSpec {
     pub behavior: String,

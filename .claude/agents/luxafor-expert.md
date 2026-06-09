@@ -19,7 +19,7 @@ protocol intimately.
   single source of truth; `config.rs` validates against it).
 - `src/config.rs` — serde structs + `load_config` (YAML, validates behavior/colour).
 - `src/controller.rs` — shared device behind a mutex, reconnect-once on error.
-- `src/server.rs` — axum app, `/webhook/{name}` (GET/POST) + `/health`.
+- `src/server.rs` — axum app: `/webhook/{name}` (GET/POST), `/run` (POST), `/health`.
 - `src/main.rs` — clap CLI; device commands are synchronous, `serve` spins a
   tokio runtime.
 - `mise.toml` — Rust 1.96 toolchain + cargo tasks. `docs/`, `99-luxafor.rules`.

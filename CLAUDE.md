@@ -19,7 +19,7 @@ with the pure-Rust `nusb` crate (no libusb/hidapi). Toolchain via **mise**
 | `src/behaviors.rs`    | Behavior registry (solid/blink/flash/…)              |
 | `src/config.rs`       | YAML config (serde) + validation                     |
 | `src/controller.rs`   | Shared device guarded by a mutex, reconnect-once      |
-| `src/server.rs`       | axum app — `/webhook/<name>` routes                  |
+| `src/server.rs`       | axum app — `/webhook/<name>` + `/run` routes         |
 | `src/main.rs`         | clap CLI — one subcommand per command                |
 | `luxa.example.yaml`   | Sample webhook config                                |
 | `mise.toml`           | Toolchain + cargo tasks (serve/tunnel/lint/fmt/…)    |
@@ -47,6 +47,9 @@ mise run flash | blink | off | serve | tunnel
 - Colours are names (`red`, …) or hex (`#ff8800`); extend `color::COLORS`.
 - Device work is blocking; in the server it runs on `spawn_blocking` behind the
   controller mutex.
+- Only one process can claim the USB device. While the server runs it owns the
+  device; direct CLI commands forward to it via `POST /run` (`LUXA_SERVER` env,
+  default `127.0.0.1:8765`) and fall back to the device when no server is up.
 - Keep `cargo clippy -- -D warnings` and `cargo fmt` clean. Update `docs/` when
   behavior or setup changes.
 

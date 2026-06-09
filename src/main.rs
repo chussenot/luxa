@@ -14,10 +14,12 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
-use crate::color::{parse_color, COLORS};
-use crate::config::load_config;
+use crate::color::COLORS;
+use crate::config::{load_config, WebhookSpec};
 use crate::controller::Controller;
-use crate::device::Luxafor;
+
+/// Default address of a running webhook server to forward direct commands to.
+const DEFAULT_SERVER: &str = "http://127.0.0.1:8765";
 
 #[derive(Parser)]
 #[command(
@@ -112,10 +114,15 @@ fn run(command: Command) -> Result<(), String> {
             speed,
             repeat,
         } => {
-            let rgb = parse_color(&color).map_err(|e| e.to_string())?;
-            let mut lux = Luxafor::open().map_err(|e| e.to_string())?;
-            lux.strobe(rgb, speed, repeat).map_err(|e| e.to_string())?;
-            println!("⚡ flashing {color} (x{repeat})");
+            let spec = WebhookSpec {
+                behavior: "flash".into(),
+                color: color.clone(),
+                speed: Some(speed),
+                repeat: Some(repeat),
+                ..Default::default()
+            };
+            let on = dispatch(&spec)?;
+            println!("⚡ flashing {color} (x{repeat}){}", via(on));
             Ok(())
         }
         Command::Blink {
@@ -124,33 +131,98 @@ fn run(command: Command) -> Result<(), String> {
             on,
             off,
         } => {
-            let rgb = parse_color(&color).map_err(|e| e.to_string())?;
-            let mut lux = Luxafor::open().map_err(|e| e.to_string())?;
-            lux.blink(
-                rgb,
-                times,
-                Duration::from_secs_f64(on),
-                Duration::from_secs_f64(off),
-            )
-            .map_err(|e| e.to_string())?;
-            lux.off().map_err(|e| e.to_string())?;
-            println!("💡 blinked {color} (x{times})");
+            let spec = WebhookSpec {
+                behavior: "blink".into(),
+                color: color.clone(),
+                times: Some(times),
+                on: Some(on),
+                off: Some(off),
+                ..Default::default()
+            };
+            let ran = dispatch(&spec)?;
+            println!("💡 blinked {color} (x{times}){}", via(ran));
             Ok(())
         }
         Command::Color { target } => {
-            let rgb = parse_color(&target).map_err(|e| e.to_string())?;
-            let mut lux = Luxafor::open().map_err(|e| e.to_string())?;
-            lux.set_color(rgb).map_err(|e| e.to_string())?;
-            println!("🎨 set to {target}");
+            let spec = WebhookSpec {
+                behavior: "solid".into(),
+                color: target.clone(),
+                ..Default::default()
+            };
+            let on = dispatch(&spec)?;
+            println!("🎨 set to {target}{}", via(on));
             Ok(())
         }
         Command::Off => {
-            let mut lux = Luxafor::open().map_err(|e| e.to_string())?;
-            lux.off().map_err(|e| e.to_string())?;
-            println!("⏻ off");
+            let spec = WebhookSpec {
+                behavior: "off".into(),
+                color: "off".into(),
+                ..Default::default()
+            };
+            let on = dispatch(&spec)?;
+            println!("⏻ off{}", via(on));
             Ok(())
         }
         Command::Serve { config, host, port } => serve(config, host, port),
+    }
+}
+
+/// Where a direct command ran.
+enum RanOn {
+    Device,
+    Server,
+}
+
+fn via(ran: RanOn) -> &'static str {
+    match ran {
+        RanOn::Server => " (via server)",
+        RanOn::Device => "",
+    }
+}
+
+/// Base URL of a running server to forward to (`LUXA_SERVER` env, else default).
+fn server_base() -> String {
+    match std::env::var("LUXA_SERVER") {
+        Ok(v) if !v.is_empty() => {
+            if v.starts_with("http://") || v.starts_with("https://") {
+                v
+            } else {
+                format!("http://{v}")
+            }
+        }
+        _ => DEFAULT_SERVER.to_string(),
+    }
+}
+
+/// Run a behavior: forward to a running server if one is reachable (it owns the
+/// USB device while serving), otherwise drive the device directly.
+fn dispatch(spec: &WebhookSpec) -> Result<RanOn, String> {
+    let url = format!("{}/run", server_base());
+    let config = ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .timeout_global(Some(Duration::from_secs(120)))
+        .build();
+    let agent = ureq::Agent::new_with_config(config);
+
+    match agent.post(&url).send_json(spec) {
+        Ok(resp) => {
+            let status = resp.status();
+            if status.is_success() {
+                Ok(RanOn::Server)
+            } else {
+                let body = resp.into_body().read_to_string().unwrap_or_default();
+                let detail = serde_json::from_str::<serde_json::Value>(&body)
+                    .ok()
+                    .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+                    .unwrap_or_else(|| body.trim().to_string());
+                Err(format!("server (HTTP {}): {detail}", status.as_u16()))
+            }
+        }
+        // No server reachable — drive the device directly.
+        Err(_) => {
+            Controller::new().run(spec).map_err(|e| e.to_string())?;
+            Ok(RanOn::Device)
+        }
     }
 }
 

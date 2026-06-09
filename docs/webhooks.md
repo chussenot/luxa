@@ -85,3 +85,30 @@ device can't be reached.
 - There's no auth — bind to `127.0.0.1` (the default) unless you add your own.
 - To trigger it from the internet, tunnel the port out with
   [cloudflared](cloudflared.md) (and read the security note there first).
+
+## Direct commands while the server is running
+
+The USB device can only be claimed by one process. While `luxa serve` is running
+(including via the systemd service), it owns the device — so a second `luxa flash`
+would otherwise fail with `interface is busy`.
+
+Instead, the direct commands (`flash`, `blink`, `color`, `off`) **automatically
+forward to a running server**: if one is reachable they POST to `/run` and you'll
+see `(via server)` in the output; if no server is up they drive the device
+directly. No flag needed.
+
+```bash
+luxa flash blue        # ⚡ flashing blue (x5) (via server)   when serving
+luxa color green       # 🎨 set to green                      when standalone
+```
+
+Point the CLI at a non-default server with the `LUXA_SERVER` env var
+(`host:port` or a full URL); it defaults to `http://127.0.0.1:8765`.
+
+`POST /run` accepts the same fields as a webhook entry, e.g.:
+
+```bash
+curl -X POST localhost:8765/run \
+  -H 'Content-Type: application/json' \
+  -d '{"behavior":"flash","color":"blue","repeat":10}'
+```
