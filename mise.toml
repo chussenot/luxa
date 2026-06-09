@@ -1,0 +1,23 @@
+[tools]
+python = "3.12"
+uv = "latest"
+
+[env]
+# Keep the virtualenv inside the project directory
+UV_PROJECT_ENVIRONMENT = ".venv"
+
+[tasks.install]
+description = "Install dependencies with uv"
+run = "uv sync"
+
+[tasks.flash]
+description = "Flash the Luxafor (red by default)"
+run = "uv run luxa flash"
+
+[tasks.blink]
+description = "Blink the Luxafor (red by default)"
+run = "uv run luxa blink"
+
+[tasks.off]
+description = "Turn the Luxafor off"
+run = "uv run luxa off"
