@@ -76,3 +76,13 @@ run = "cargo fmt"
 [tasks.test]
 description = "Run the test suite"
 run = "cargo test"
+
+# --- systemd (user) services -------------------------------------------------
+
+[tasks.install-service]
+description = "Install + enable luxa systemd user services (server + tunnel)"
+run = "sh scripts/install-systemd.sh"
+
+[tasks.uninstall-service]
+description = "Remove the luxa systemd user services"
+run = "sh scripts/uninstall-systemd.sh"

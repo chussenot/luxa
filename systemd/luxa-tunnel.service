@@ -1,0 +1,15 @@
+[Unit]
+Description=cloudflared quick tunnel for the luxa webhook server
+After=luxa.service
+Wants=luxa.service
+
+[Service]
+# @CLOUDFLARED@ is filled in by scripts/install-systemd.sh.
+# Note: a quick tunnel's public URL changes on each restart; find it with
+#   journalctl --user -u luxa-tunnel.service | grep trycloudflare
+ExecStart=@CLOUDFLARED@ tunnel --url http://127.0.0.1:8765
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

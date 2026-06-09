@@ -1,0 +1,13 @@
+[Unit]
+Description=luxa — Luxafor webhook server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# %h expands to the user's home directory.
+ExecStart=%h/.local/bin/luxa serve --config %h/.config/luxa/luxa.yaml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
