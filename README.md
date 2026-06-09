@@ -28,5 +28,6 @@ See [docs/webhooks.md](docs/webhooks.md).
 
 - [Getting started](docs/getting-started.md) — install, permissions, usage
 - [Webhooks](docs/webhooks.md) — YAML config → behaviors over HTTP
+- [Expose with cloudflared](docs/cloudflared.md) — tunnel the webhook port to the web
 - [Debugging notes](docs/debugging.md) — how we got the device talking
 - [Architecture decisions](docs/adr/) — ADRs

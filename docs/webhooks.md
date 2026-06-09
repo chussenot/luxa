@@ -83,3 +83,5 @@ device can't be reached. Interactive API docs are at `/docs` (FastAPI).
 - The single USB device is shared behind a lock, so overlapping requests run one
   at a time; a long behavior (e.g. a slow blink) delays queued ones.
 - There's no auth — bind to `127.0.0.1` (the default) unless you add your own.
+- To trigger it from the internet, tunnel the port out with
+  [cloudflared](cloudflared.md) (and read the security note there first).
