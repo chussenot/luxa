@@ -59,6 +59,18 @@ systemctl --user daemon-reload
 systemctl --user enable --now luxa.service
 [ "$TUNNEL" -eq 1 ] && systemctl --user enable --now luxa-tunnel.service
 
+# Enable lingering so the user systemd instance — and these services — start at
+# host boot, before (and without) an interactive login. Needs root once.
+echo "==> Enabling lingering so services start at boot (needs sudo once)"
+if loginctl show-user "$USER" 2>/dev/null | grep -q '^Linger=yes'; then
+  echo "    already enabled"
+elif sudo -n true 2>/dev/null; then
+  sudo loginctl enable-linger "$USER" && echo "    enabled for $USER"
+else
+  echo "    skipped — run this once to start at boot without logging in:"
+  echo "      sudo loginctl enable-linger \"$USER\""
+fi
+
 echo
 echo "Done."
 echo "  status:  systemctl --user status luxa.service"
@@ -66,5 +78,4 @@ echo "  logs:    journalctl --user -u luxa.service -f"
 [ "$TUNNEL" -eq 1 ] && \
 echo "  URL:     journalctl --user -u luxa-tunnel.service | grep trycloudflare"
 echo
-echo "Run at boot without an active login:  sudo loginctl enable-linger \"$USER\""
 echo "Device access needs the udev rule (see docs/getting-started.md)."

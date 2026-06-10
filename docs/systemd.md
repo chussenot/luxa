@@ -1,9 +1,10 @@
 # Running luxa as a systemd service
 
 Install the webhook server and a cloudflared tunnel as **user** services
-(`systemctl --user`) so they start in the background and survive logout. They run
-as your user — device access comes from the [udev rule](getting-started.md), no
-root required.
+(`systemctl --user`) so they start automatically at host boot and survive logout.
+They run as your user — device access comes from the [udev rule](getting-started.md),
+so the services themselves need no root. (Enabling boot-start needs `sudo` once;
+see step 5.)
 
 ## Install
 
@@ -21,6 +22,9 @@ This will:
    - `luxa-tunnel.service` — runs a `cloudflared` quick tunnel to port 8765
      (skipped if `cloudflared` isn't found).
 4. `enable --now` both, so they start immediately and on login.
+5. `loginctl enable-linger "$USER"` so your user services start at host **boot**,
+   before any login. This needs root: if the installer can `sudo` without a
+   password it does it for you, otherwise it prints the one command to run.
 
 ## Manage
 
@@ -34,10 +38,15 @@ journalctl --user -u luxa-tunnel.service | grep trycloudflare
 systemctl --user restart luxa.service
 ```
 
-Start at boot without an active login session:
+## Start at boot
+
+The installer enables **lingering** for you (step 5), which is what makes the
+services come up at host boot without anyone logging in. To check or set it
+manually:
 
 ```bash
-sudo loginctl enable-linger "$USER"
+loginctl show-user "$USER" | grep Linger   # Linger=yes means boot-start is on
+sudo loginctl enable-linger "$USER"         # turn it on
 ```
 
 ## Notes
