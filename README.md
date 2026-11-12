@@ -34,6 +34,11 @@ Start with [Getting started](docs/getting-started.md); the full set is in
 [`docs/`](docs/index.md). Linux needs a one-time udev rule, covered there.
 Browse it as a site with `mise run docs`.
 
+## Tested hardware
+
+Tested with a [Luxafor Flag 1 (USB)](https://luxafor.com/product/flag2/), USB ID
+`04d8:f372`. Other Luxafor models are untested.
+
 ## Disclaimer
 
 `luxa` is an independent project. It is not affiliated with, endorsed by, or
