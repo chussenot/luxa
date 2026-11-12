@@ -1,0 +1,22 @@
+# cocogitto — version bumps and changelog from Conventional Commits.
+# Release with `cog bump --auto` (see docs/releasing.md).
+
+# Tags look like v0.2.0; the release workflow triggers on v*.
+tag_prefix = "v"
+branch_whitelist = ["master"]
+ignore_merge_commits = true
+# History before the first tag predates Conventional Commits; only check from the latest tag.
+from_latest_tag = true
+
+# Keep Cargo.toml and Cargo.lock in step with the tag; cog commits both in the bump commit.
+pre_bump_hooks = [
+    "sed -i 's/^version = \".*\"/version = \"{{version}}\"/' Cargo.toml",
+    "cargo update --workspace --offline",
+]
+
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+owner = "chussenot"
+repository = "luxa"

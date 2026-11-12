@@ -3,15 +3,23 @@
 Pushing a version tag builds the binaries and publishes a GitHub release
 (`.github/workflows/release.yml`).
 
-```bash
-# 1. Bump `version` in Cargo.toml, then refresh Cargo.lock
-cargo build
-git commit -am "chore(release): v0.2.0"
+Versions and the changelog are managed by
+[cocogitto](https://docs.cocogitto.io/) (`cog.toml`), from
+[Conventional Commits](https://www.conventionalcommits.org/).
 
-# 2. Tag and push; the tag must match the Cargo.toml version
-git tag v0.2.0
-git push origin master v0.2.0
+```bash
+cog bump --auto              # next version from the commits since the last tag
+git push origin master --tags
 ```
+
+`cog bump` sets the version in `Cargo.toml` and `Cargo.lock`, updates
+`CHANGELOG.md`, commits, and creates the `v<version>` tag. It does not push.
+
+- `--auto` only bumps when there is a `feat` or `fix` commit (or a breaking
+  change) since the last tag; `docs`, `ci` and `chore` commits alone do nothing.
+- To choose the version yourself, including the first release:
+  `cog bump --version 0.1.0`.
+- Preview without changing anything: `cog bump --auto --dry-run`.
 
 The workflow fails early if the tag and the `Cargo.toml` version differ.
 
