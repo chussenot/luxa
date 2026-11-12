@@ -2,7 +2,8 @@
 
 ![](luxafor.jpg)
 
-A light on your desk that any script or service can turn on.
+**Notifications you see without looking.** A desk light that any script or
+service can switch on.
 
 ## Why
 
@@ -12,9 +13,8 @@ A light in the corner of your eye does not need focus, a window, or sound.
 
 `luxa` makes a **Luxafor Flag** scriptable. One command sets the light from a
 shell; one YAML file maps HTTP webhooks to colours and blink patterns, so
-anything that can send a request can reach your desk. It is a single Rust
-binary that speaks USB directly, with no vendor application and no system
-libraries.
+anything that can send a request can reach your desk. It is a single binary
+that speaks USB directly, with no vendor application and no system libraries.
 
 ## Three ways to use it
 
@@ -33,3 +33,8 @@ libraries.
 Start with [Getting started](docs/getting-started.md); the full set is in
 [`docs/`](docs/index.md). Linux needs a one-time udev rule, covered there.
 Browse it as a site with `mise run docs`.
+
+## Disclaimer
+
+`luxa` is an independent project. It is not affiliated with, endorsed by, or
+supported by Luxafor. "Luxafor" is a trademark of its respective owner.

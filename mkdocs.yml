@@ -1,5 +1,5 @@
 site_name: luxa
-site_description: Drive a Luxafor Flag from the command line or from webhooks.
+site_description: Notifications you see without looking. A desk light that any script or service can switch on.
 repo_url: https://github.com/chussenot/luxa
 edit_uri: edit/master/docs/
 
