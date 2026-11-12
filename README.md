@@ -28,6 +28,28 @@ curl -X POST localhost:8765/webhook/deploy-success
 
 See [docs/webhooks.md](docs/webhooks.md).
 
+## Troubleshooting
+
+**`failed to open device (errno 13)`** — the udev rule is missing or not yet
+applied, so the USB node is not writable by your user. Install it and re-apply
+it to the already-plugged device:
+
+```bash
+sudo cp 99-luxafor.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=add --attr-match=idVendor=04d8
+```
+
+If the error comes back as `server (HTTP 503)`, the CLI forwarded the command
+to a running server; fix the rule, then `systemctl --user restart luxa` if it
+still fails.
+
+**`could not read config luxa.yaml`** — `luxa serve` looks for `luxa.yaml` in
+the current directory. Pass the path explicitly
+(`luxa serve -c ~/.config/luxa/luxa.yaml`), or skip it entirely if the
+[systemd service](docs/systemd.md) is already running: it owns the device and
+port `8765`, and CLI commands forward to it.
+
 ## Docs
 
 - [Getting started](docs/getting-started.md) — install, permissions, usage
