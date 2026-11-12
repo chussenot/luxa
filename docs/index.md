@@ -12,4 +12,5 @@ over USB.
 | Keep the server running across reboots       | [Run as a service](systemd.md)          |
 | Trigger the light from outside your machine  | [Expose with cloudflared](cloudflared.md) |
 | Fix a device that does not respond           | [Troubleshooting](troubleshooting.md)   |
+| Publish a new version                        | [Releasing](releasing.md)               |
 | Understand why it is built this way          | [Decision records](adr/index.md)        |

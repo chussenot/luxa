@@ -34,6 +34,7 @@ nav:
       - Run as a service: systemd.md
       - Expose with cloudflared: cloudflared.md
       - Troubleshooting: troubleshooting.md
+      - Releasing: releasing.md
   - Design:
       - Decision records: adr/index.md
       - 0000 Record architecture decisions: adr/0000-record-architecture-decisions.md
