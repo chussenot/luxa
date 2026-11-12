@@ -77,6 +77,10 @@ run = "cargo fmt"
 description = "Run the test suite"
 run = "cargo test"
 
+[tasks.docs]
+description = "Serve the documentation site locally (mkdocs)"
+run = "uvx --with mkdocs-material mkdocs serve"
+
 # --- systemd (user) services -------------------------------------------------
 
 [tasks.install-service]

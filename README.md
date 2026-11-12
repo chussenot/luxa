@@ -2,59 +2,34 @@
 
 ![](luxafor.jpg)
 
-A small Rust CLI and webhook server to flash/blink a **Luxafor Flag**
-(USB `04d8:f372`). Talks to the device directly over USB with the pure-Rust
-[`nusb`](https://docs.rs/nusb) crate — no libusb/hidapi system libraries.
-Tooling via [mise](https://mise.jdx.dev/) (Rust toolchain) + Cargo.
+A light on your desk that any script or service can turn on.
 
-```bash
-mise install                       # rust toolchain + build
-cargo run -- flash blue            # ⚡ strobe
-cargo run -- blink green --times 8 # 💡 on/off loop
-cargo run -- off
-```
+## Why
 
-Linux needs a one-time udev rule for device access — see [docs/getting-started.md](docs/getting-started.md).
+Notifications compete for the same screen you are trying to work on, and most
+of them lose: the tab is hidden, the channel is muted, the headphones are on.
+A light in the corner of your eye does not need focus, a window, or sound.
 
-## Webhooks
+`luxa` makes a **Luxafor Flag** scriptable. One command sets the light from a
+shell; one YAML file maps HTTP webhooks to colours and blink patterns, so
+anything that can send a request can reach your desk. It is a single Rust
+binary that speaks USB directly, with no vendor application and no system
+libraries.
 
-Map HTTP webhooks to device behaviors via YAML, then run a server:
+## Three ways to use it
 
-```bash
-cp luxa.example.yaml luxa.yaml     # edit to taste
-cargo run -- serve                 # POST /webhook/<name>
-curl -X POST localhost:8765/webhook/deploy-success
-```
+1. **A coding agent or long job that needs you.** Turn the light yellow when an
+   agent is waiting for an answer and green when the build or test run is done.
+   You stop checking the terminal and come back when the light changes.
+2. **A doorbell you can see.** Have your home automation call a webhook when
+   someone rings or the phone goes off. Useful with noise-cancelling headphones,
+   and for people who are deaf or hard of hearing.
+3. **An "occupied" sign for a shared resource.** Light it red while someone
+   holds the staging environment, a deploy freeze is on, or the shared GPU is
+   busy. The team sees the state without asking in chat.
 
-See [docs/webhooks.md](docs/webhooks.md).
+## Documentation
 
-## Troubleshooting
-
-**`failed to open device (errno 13)`** — the udev rule is missing or not yet
-applied, so the USB node is not writable by your user. Install it and re-apply
-it to the already-plugged device:
-
-```bash
-sudo cp 99-luxafor.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
-sudo udevadm trigger --action=add --attr-match=idVendor=04d8
-```
-
-If the error comes back as `server (HTTP 503)`, the CLI forwarded the command
-to a running server; fix the rule, then `systemctl --user restart luxa` if it
-still fails.
-
-**`could not read config luxa.yaml`** — `luxa serve` looks for `luxa.yaml` in
-the current directory. Pass the path explicitly
-(`luxa serve -c ~/.config/luxa/luxa.yaml`), or skip it entirely if the
-[systemd service](docs/systemd.md) is already running: it owns the device and
-port `8765`, and CLI commands forward to it.
-
-## Docs
-
-- [Getting started](docs/getting-started.md) — install, permissions, usage
-- [Webhooks](docs/webhooks.md) — YAML config → behaviors over HTTP
-- [Expose with cloudflared](docs/cloudflared.md) — tunnel the webhook port to the web
-- [Run as a service](docs/systemd.md) — systemd user units for the server + tunnel
-- [Debugging notes](docs/debugging.md) — how we got the device talking
-- [Architecture decisions](docs/adr/) — ADRs
+Start with [Getting started](docs/getting-started.md); the full set is in
+[`docs/`](docs/index.md). Linux needs a one-time udev rule, covered there.
+Browse it as a site with `mise run docs`.

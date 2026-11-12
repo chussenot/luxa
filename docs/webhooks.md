@@ -31,8 +31,8 @@ webhooks:
     behavior: "off"      # quote it — bare `off` is a YAML boolean
 ```
 
-- **behavior** — one of the names from `cargo run -- behaviors`.
-- **color** — a name (`red`, `green`, …) or hex (`#ff8800`).
+- **behavior** — one of the [behaviors](#behaviors) below.
+- **color** — a name or hex value; see [colours](cli.md#colours).
 - **tuning** (optional, per behavior) — `times`, `on`, `off`, `speed`,
   `repeat`, `duration`, `wave_type`. Omit to use the behavior's defaults.
 
@@ -86,24 +86,12 @@ device can't be reached.
 - To trigger it from the internet, tunnel the port out with
   [cloudflared](cloudflared.md) (and read the security note there first).
 
-## Direct commands while the server is running
+## Ad-hoc commands: `POST /run`
 
-The USB device can only be claimed by one process. While `luxa serve` is running
-(including via the systemd service), it owns the device — so a second `luxa flash`
-would otherwise fail with `interface is busy`.
-
-Instead, the direct commands (`flash`, `blink`, `color`, `off`) **automatically
-forward to a running server**: if one is reachable they POST to `/run` and you'll
-see `(via server)` in the output; if no server is up they drive the device
-directly. No flag needed.
-
-```bash
-luxa flash blue        # ⚡ flashing blue (x5) (via server)   when serving
-luxa color green       # 🎨 set to green                      when standalone
-```
-
-Point the CLI at a non-default server with the `LUXA_SERVER` env var
-(`host:port` or a full URL); it defaults to `http://127.0.0.1:8765`.
+Besides the named webhooks, the server runs any behavior on demand. This is the
+endpoint the CLI uses when it
+[forwards a command](cli.md#commands-while-a-server-is-running) to a running
+server.
 
 `POST /run` accepts the same fields as a webhook entry, e.g.:
 

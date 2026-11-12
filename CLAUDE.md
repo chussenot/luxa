@@ -23,7 +23,8 @@ with the pure-Rust `nusb` crate (no libusb/hidapi). Toolchain via **mise**
 | `src/main.rs`         | clap CLI — one subcommand per command                |
 | `luxa.example.yaml`   | Sample webhook config                                |
 | `mise.toml`           | Toolchain + cargo tasks (serve/tunnel/lint/fmt/…)    |
-| `docs/`               | `getting-started`, `webhooks`, `debugging`, `adr/`   |
+| `docs/`               | `getting-started`, `cli`, `webhooks`, `systemd`, `cloudflared`, `troubleshooting`, `adr/` |
+| `mkdocs.yml`          | Docs site nav (`mise run docs`); add new pages here  |
 | `99-luxafor.rules`    | udev rule granting device access on Linux            |
 
 ## Commands
@@ -53,7 +54,7 @@ mise run flash | blink | off | serve | tunnel
 - Keep `cargo clippy -- -D warnings` and `cargo fmt` clean. Update `docs/` when
   behavior or setup changes.
 
-## Hardware gotchas (see `docs/debugging.md`)
+## Hardware gotchas (see `docs/troubleshooting.md`)
 
 - `nusb` opens the USB node `/dev/bus/usb/<bus>/<dev>` via usbfs; it detaches the
   kernel HID driver and claims interface 0. Permissions live on that node.

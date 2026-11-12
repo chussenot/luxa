@@ -1,0 +1,41 @@
+site_name: luxa
+site_description: Drive a Luxafor Flag from the command line or from webhooks.
+repo_url: https://github.com/chussenot/luxa
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  # Renders the ```mermaid blocks used in cloudflared.md and the ADRs.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+# Ordered by what a reader needs next: try it, look things up, run it for real,
+# fix it, understand why it is built this way.
+nav:
+  - Home: index.md
+  - Tutorial:
+      - Getting started: getting-started.md
+  - Reference:
+      - CLI: cli.md
+      - Webhooks: webhooks.md
+  - Operations:
+      - Run as a service: systemd.md
+      - Expose with cloudflared: cloudflared.md
+      - Troubleshooting: troubleshooting.md
+  - Design:
+      - Decision records: adr/index.md
+      - 0000 Record architecture decisions: adr/0000-record-architecture-decisions.md
+      - 0001 YAML webhooks to behaviors: adr/0001-yaml-webhooks-to-luxafor-behaviors.md
+      - 0002 Rewrite in Rust: adr/0002-rewrite-in-rust.md

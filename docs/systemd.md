@@ -53,8 +53,7 @@ sudo loginctl enable-linger "$USER"         # turn it on
 
 - While the service runs it owns the USB device; direct `luxa flash`/`blink`/etc.
   commands automatically forward to it (you will see `(via server)`). See
-  [webhooks](webhooks.md#direct-commands-while-the-server-is-running).
-
+  [CLI reference](cli.md#commands-while-a-server-is-running).
 - After editing `~/.config/luxa/luxa.yaml`, run
   `systemctl --user restart luxa.service`.
 - The units listen on port `8765`; if you change it in the config, update the
