@@ -1,5 +1,6 @@
 [tools]
 cloudflared = "latest"
+cocogitto = "latest"
 rust = "1.96"
 
 # --- setup -------------------------------------------------------------------
